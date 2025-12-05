@@ -1,0 +1,123 @@
+/* Base styles and resets */
+/* Modern CSS Reset: https://piccalil.li/blog/a-modern-css-reset/ */
+
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margin and padding */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+/* Set core root and body defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Text size adjustment */
+html, 
+:host {
+  /* Standard property */
+  text-size-adjust: 100%;
+  /* Vendor prefixes */
+  -webkit-text-size-adjust: 100%;  /* Safari, Chrome < 54, iOS < 9.3 */
+  -moz-text-size-adjust: 100%;     /* Firefox < 43 */
+  -ms-text-size-adjust: 100%;      /* IE 10-11 */
+  
+  /* Other properties */
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* User selection */
+[data-sonner-toast][data-swiped=true],
+[data-sonner-toast][data-swipe="move"] {
+  /* Standard property */
+  user-select: none;
+  /* Vendor prefixes */
+  -webkit-user-select: none;  /* Safari */
+  -moz-user-select: none;     /* Firefox */
+  -ms-user-select: none;      /* IE10+/Edge */
+  
+  /* Additional touch handling */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Scrollbar styling */
+[data-radix-scroll-area-viewport] {
+  /* Standard property */
+  scrollbar-width: none;
+  /* Vendor prefixes */
+  -ms-overflow-style: none;  /* IE and Edge */
+  
+  /* Performance optimization */
+  -webkit-overflow-scrolling: touch;
+  overflow: -moz-scrollbars-none;
+}
+
+/* Hide scrollbar for WebKit browsers */
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+/* Optimized accordion animation */
+@keyframes accordion-up {
+  from {
+    -webkit-transform: scaleY(0);
+            transform: scaleY(0);
+    -webkit-transform-origin: top;
+            transform-origin: top;
+    opacity: 0;
+  }
+  to {
+    -webkit-transform: scaleY(1);
+            transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Accordion component styles */
+[data-state="open"] {
+  -webkit-animation: accordion-up 0.2s ease-out;
+          animation: accordion-up 0.2s ease-out;
+  -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+          perspective: 1000px;
+}
+
+/* Print styles */
+@media print {
+  html, body {
+    height: auto;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  [data-print-hide] {
+    display: none !important;
+  }
+  
+  /* Prevent page breaks inside elements */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+}

@@ -1,0 +1,198 @@
+// @ts-ignore - Deno imports are valid in Supabase Edge Functions
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// CORS headers to allow requests from your frontend
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "http://localhost:8081",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, apisubscription",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Max-Age": "86400"
+};
+
+// Helper to create responses
+const createResponse = (data: any, status = 200) => {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json"
+    }
+  });
+};
+
+// --- DATABASE QUERY LOGIC ---
+// Function to get all available options for a given product group
+async function getOptionsForProductGroup(supabase: any, productGroup: string) {
+  const { data: groupData, error: groupError } = await supabase
+    .from("productgroups")
+    .select("id")
+    .eq("group_name", productGroup)
+    .single();
+    
+  if (groupError || !groupData) {
+    throw new Error(`Product group not found: ${productGroup}`);
+  }
+  
+  const productGroupId = groupData.id;
+  
+  const fetchOptions = async (tableName: string, selectColumn: string, joinTable: string, joinColumn: string) => {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(selectColumn)
+      .join(joinTable, `${tableName}.id`, `${joinTable}.${joinColumn}`)
+      .eq(`${joinTable}.product_group_id`, productGroupId);
+      
+    if (error) throw error;
+    return data.map((item: any) => item[selectColumn]);
+  };
+
+  const [
+    standards, 
+    materials, 
+    widths, 
+    heights, 
+    depths, 
+    bores, 
+    numBores, 
+    coatings, 
+    hardening, 
+    tolerances
+  ] = await Promise.all([
+    fetchOptions("standards", "standard_name", "productgroup_standards", "standard_id"),
+    fetchOptions("materials", "material_name", "productgroup_available_materials", "material_id"),
+    fetchOptions("dimensions", "value", "productgroup_available_widths", "dimension_id"),
+    fetchOptions("dimensions", "value", "productgroup_available_heights", "dimension_id"),
+    fetchOptions("dimensions", "value", "productgroup_available_depths", "dimension_id"),
+    fetchOptions("bores", "bore_size", "productgroup_available_bores", "bore_id"),
+    fetchOptions("numberofbores", "count", "productgroup_available_num_bores", "num_bores_id"),
+    fetchOptions("coatings", "coating_type", "productgroup_available_coatings", "coating_id"),
+    fetchOptions("hardeninglevels", "hardening_level", "productgroup_available_hardening", "hardening_id"),
+    fetchOptions("tolerances", "tolerance_grade", "productgroup_available_tolerances", "tolerance_id")
+  ]);
+
+  return {
+    Norms: standards,
+    Materials: materials,
+    Dimensions: [...new Set([...widths, ...heights, ...depths])].sort((a: any, b: any) => a - b),
+    Bores: bores,
+    NumberOfBores: numBores.map(String).sort(),
+    Coatings: coatings,
+    Hardening: hardening.sort(),
+    TolerancesBreite: tolerances,
+    TolerancesHohe: tolerances
+  };
+}
+
+// Function to calculate the unit price from the database
+async function calculatePrice(supabase: any, formData: any) {
+  let total = 0;
+  
+  const getCost = async (table: string, nameCol: string, costCol: string, name: string) => {
+    if (!name) return 0;
+    const { data, error } = await supabase
+      .from(table)
+      .select(costCol)
+      .eq(nameCol, name)
+      .single();
+      
+    if (error) throw new Error(`Could not fetch cost for ${name} from ${table}: ${error.message}`);
+    return data ? data[costCol] : 0;
+  };
+
+  const [
+    materialCost, 
+    boreCost, 
+    coatingCost, 
+    hardeningCost, 
+    tolBreiteCost, 
+    tolHoheCost
+  ] = await Promise.all([
+    getCost("materials", "material_name", "cost_per_gram", formData.material),
+    getCost("bores", "bore_size", "cost_per_bore", formData.bore),
+    getCost("coatings", "coating_type", "cost_per_part", formData.coating),
+    getCost("hardeninglevels", "hardening_level", "cost_per_lot", formData.hardening),
+    getCost("tolerances", "tolerance_grade", "cost_per_side", formData.toleranceBreite),
+    getCost("tolerances", "tolerance_grade", "cost_per_side", formData.toleranceHohe)
+  ]);
+
+  total += materialCost * (formData.weight || 0);
+  total += boreCost * (formData.numberOfBores || 0);
+  total += coatingCost;
+  total += hardeningCost;
+  total += tolBreiteCost;
+  total += tolHoheCost;
+  
+  return total;
+}
+
+// --- EDGE FUNCTION MAIN HANDLER ---
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders
+    });
+  }
+  
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") || "", 
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get("Authorization") || ""
+          }
+        }
+      }
+    );
+    
+    const url = new URL(req.url);
+    const path = url.pathname;
+    
+    // Handle get-options endpoint
+    if (path.endsWith("/get-options")) {
+      const productGroup = url.searchParams.get("productGroup");
+      if (!productGroup) {
+        return createResponse({ error: "productGroup parameter is required" }, 400);
+      }
+      
+      try {
+        const options = await getOptionsForProductGroup(supabase, productGroup);
+        return createResponse(options);
+      } catch (error: any) {
+        console.error("Error in getOptionsForProductGroup:", error);
+        return createResponse({ error: error.message || "Failed to fetch options" }, 500);
+      }
+    }
+    
+    // Handle calculate-price endpoint
+    if (path.endsWith("/calculate-price")) {
+      try {
+        const body = await req.json();
+        const unitPrice = await calculatePrice(supabase, body);
+        return createResponse({ unitPrice });
+      } catch (error: any) {
+        console.error("Error in calculatePrice:", error);
+        return createResponse({ error: error.message || "Failed to calculate price" }, 500);
+      }
+    }
+    
+    // Default response for unknown endpoints
+    return createResponse({
+      name: "Product Config API",
+      status: "running",
+      endpoints: [
+        "GET /get-options?productGroup=<group_name>",
+        "POST /calculate-price"
+      ]
+    });
+    
+  } catch (error: any) {
+    console.error("Error in request handler:", error);
+    return createResponse({
+      error: error.message || "Internal server error"
+    }, 500);
+  }
+});

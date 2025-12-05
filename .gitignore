@@ -1,0 +1,31 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# File processor files
+/src/components/FileProcessor.old.tsx
+/src/components/FileProcessor.tsx
+/src/components/FileProcessorNew.temp.tsx
+/src/components/FileProcessorNew_*.tsx
+/src/components/fileprocess.tsx
