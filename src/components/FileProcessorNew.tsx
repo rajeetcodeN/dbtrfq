@@ -632,7 +632,7 @@ const FileProcessor: React.FC<FileProcessorProps> = ({ onSendToChat = () => { } 
   };
 
   const sendToWebhook = async (file: File) => {
-    const N8N_WEBHOOK_URL = 'https://nosta.app.n8n.cloud/webhook/f8957a80-b4c3-4bb4-b3c0-256624cbcc40';
+    const N8N_WEBHOOK_URL = 'https://n8n.digitalbiz.tech/webhook/f8957a80-b4c3-4bb4-b3c0-256624cbcc40';
     setUploadStatus('Extracting data from uploaded file. This may take a few minutes...');
     setIsProcessing(true);
 
