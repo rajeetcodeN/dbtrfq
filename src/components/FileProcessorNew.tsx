@@ -881,11 +881,11 @@ const FileProcessor: React.FC<FileProcessorProps> = ({ onSendToChat = () => { } 
 
       // Set document properties
       doc.setProperties({
-        title: 'Nosta Quote',
+        title: 'DBT Quote',
         subject: 'Quote',
-        author: 'Nosta GmbH',
-        keywords: 'quote, nostagmbh',
-        creator: 'Nosta Quote AI'
+        author: 'DBT GmbH',
+        keywords: 'DBT',
+        creator: 'DBT Quote AI'
       });
 
       // Add NOSTA logo and company information
@@ -908,7 +908,7 @@ const FileProcessor: React.FC<FileProcessorProps> = ({ onSendToChat = () => { } 
         // Minimal fallback
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(24);
-        doc.text('NOSTA GMBH', 20, 30);
+        doc.text('DBT', 20, 30);
       }
 
       // Add document title
@@ -1133,7 +1133,7 @@ const FileProcessor: React.FC<FileProcessorProps> = ({ onSendToChat = () => { } 
           // Add footer with company info and more spacing
           doc.setFontSize(7);
           doc.setTextColor(100);
-          doc.text('NOSTA GmbH • Your Address • Phone: +49 XXX XXXX • Email: info@nosta-gmbh.de', 105, pageHeight - 8, { align: 'center' });
+          doc.text('DBT • Your Address • Phone:• Email: ', 105, pageHeight - 8, { align: 'center' });
         }
       });
 
@@ -1155,7 +1155,7 @@ const FileProcessor: React.FC<FileProcessorProps> = ({ onSendToChat = () => { } 
       // Remove terms and conditions as requested
 
       // Save the PDF with a meaningful name
-      doc.save(`NOSTA-${docType}-${docNumber || docDate.replace(/\//g, '-')}.pdf`);
+      doc.save(`DBT-${docType}-${docNumber || docDate.replace(/\//g, '-')}.pdf`);
       toast.success('PDF generated successfully!');
 
     } catch (error) {
