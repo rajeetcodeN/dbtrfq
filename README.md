@@ -1,4 +1,4 @@
-# # Nosta Quote AI
+# # DBT Quote AI
 
 A modern web application for generating and managing quotes with AI-powered document processing.
 
